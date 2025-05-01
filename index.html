@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Surveillance ASM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 2em;
+      background-color: #f4f4f4;
+    }
+    h1 {
+      color: #333;
+    }
+    button {
+      padding: 1em 2em;
+      font-size: 1.2em;
+      margin: 1em;
+      border: none;
+      border-radius: 10px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+    }
+    button.stop {
+      background-color: #f44336;
+    }
+    #status {
+      font-size: 1.2em;
+      margin-top: 2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Surveillance ASM</h1>
+  <button id="startBtn">Démarrer la session</button>
+  <button id="stopBtn" class="stop" disabled>Stop</button>
+  <div id="status">En attente...</div>
+
+  <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status');
+    const alertSound = document.getElementById('alertSound');
+
+    let cycleInterval;
+    let emergencyTimeout;
+    let sessionStarted = false;
+
+    function startSession() {
+      if (sessionStarted) return;
+      sessionStarted = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      status.textContent = "Session en cours...";
+
+      // Démarre la minuterie d'urgence (1h)
+      emergencyTimeout = setTimeout(() => {
+        window.open("https://www.sos112.info/fr/", "_blank");
+      }, 60 * 60 * 1000); // 1 heure
+
+      // Lance le cycle des 15 minutes
+      start15MinCycle();
+    }
+
+    function start15MinCycle() {
+      cycleInterval = setInterval(() => {
+        alertSound.play();
+        alert("Les 15 minutes sont écoulées. Appuie sur STOP si tout va bien.");
+      }, 15 * 60 * 1000); // 15 minutes
+    }
+
+    function stopSession() {
+      sessionStarted = false;
+      clearInterval(cycleInterval);
+      clearTimeout(emergencyTimeout);
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      status.textContent = "Session arrêtée.";
+    }
+
+    startBtn.addEventListener('click', startSession);
+    stopBtn.addEventListener('click', stopSession);
+  </script>
+</body>
+</html>
