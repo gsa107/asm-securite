@@ -1,90 +1,143 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Surveillance ASM</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Crise d’Asthme</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 2em;
-      background-color: #f4f4f4;
+    body { font-family: sans-serif; padding: 1rem; }
+    #chrono, #tempsRestant { font-weight: bold; font-size: 1.2rem; }
+    .alerte15, .alerte60 {
+      background: red; color: white; padding: 1rem; margin-top: 1rem;
+      display: none; border-radius: 10px;
     }
-    h1 {
-      color: #333;
-    }
-    button {
-      padding: 1em 2em;
-      font-size: 1.2em;
-      margin: 1em;
-      border: none;
-      border-radius: 10px;
-      background-color: #4CAF50;
-      color: white;
-      cursor: pointer;
-    }
-    button.stop {
-      background-color: #f44336;
-    }
-    #status {
-      font-size: 1.2em;
-      margin-top: 2em;
+    #listeCrises .crise-item {
+      margin: 0.5rem 0; border: 1px solid #ccc; padding: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h1>Surveillance ASM</h1>
-  <button id="startBtn">Démarrer la session</button>
-  <button id="stopBtn" class="stop" disabled>Stop</button>
-  <div id="status">En attente...</div>
 
-  <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+  <h1>Gestion de Crise d’Asthme</h1>
+
+  <button onclick="demarrerSession()">Démarrer une session</button>
+  <button onclick="arreterSession()">Stop</button>
+  <button onclick="ajouterCriseManuelle()">Enregistrer manuellement</button>
+
+  <div id="chrono">Temps écoulé : 0 min</div>
+  <div id="tempsRestant">Temps avant alarme : 15:00</div>
+
+  <div class="alerte15" id="alerte15">⏰ 15 min écoulées !</div>
+  <div class="alerte60" id="alerte60">
+    ⚠️ Crise prolongée !<br/>
+    Appeler les secours immédiatement : <strong>112</strong><br/>
+    Prendre <strong>2 comprimés de Prednisolone</strong>.
+  </div>
+
+  <h2>Historique des crises</h2>
+  <div id="listeCrises"></div>
+
+  <audio id="sonAlarme" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
   <script>
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const status = document.getElementById('status');
-    const alertSound = document.getElementById('alertSound');
+    let timer15, timer60, chronoInterval, debut, historique = [];
 
-    let cycleInterval;
-    let emergencyTimeout;
-    let sessionStarted = false;
-
-    function startSession() {
-      if (sessionStarted) return;
-      sessionStarted = true;
-      startBtn.disabled = true;
-      stopBtn.disabled = false;
-      status.textContent = "Session en cours...";
-
-      // Démarre la minuterie d'urgence (1h)
-      emergencyTimeout = setTimeout(() => {
-        window.open("https://www.sos112.info/fr/", "_blank");
-      }, 60 * 60 * 1000); // 1 heure
-
-      // Lance le cycle des 15 minutes
-      start15MinCycle();
+    function sortirDuSilencieux() {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      osc.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.05);
     }
 
-    function start15MinCycle() {
-      cycleInterval = setInterval(() => {
-        alertSound.play();
-        alert("Les 15 minutes sont écoulées. Appuie sur STOP si tout va bien.");
-      }, 15 * 60 * 1000); // 15 minutes
+    function jouerSon() {
+      const son = document.getElementById("sonAlarme");
+      son.currentTime = 0;
+      son.play();
+      setTimeout(() => son.pause(), 1500);
     }
 
-    function stopSession() {
-      sessionStarted = false;
-      clearInterval(cycleInterval);
-      clearTimeout(emergencyTimeout);
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      status.textContent = "Session arrêtée.";
+    function updateChrono() {
+      const maintenant = Date.now();
+      const ecouleSec = Math.floor((maintenant - debut) / 1000);
+      const restant = Math.max(0, 15 * 60 - ecouleSec);
+      document.getElementById("chrono").textContent = `Temps écoulé : ${Math.floor(ecouleSec / 60)} min`;
+      document.getElementById("tempsRestant").textContent = `Temps avant alarme : ${Math.floor(restant / 60)}:${(restant % 60).toString().padStart(2, '0')}`;
     }
 
-    startBtn.addEventListener('click', startSession);
-    stopBtn.addEventListener('click', stopSession);
+    function demarrerSession() {
+      sortirDuSilencieux();
+      debut = Date.now();
+      document.getElementById("alerte15").style.display = "none";
+      document.getElementById("alerte60").style.display = "none";
+
+      timer15 = setTimeout(() => {
+        document.getElementById("alerte15").style.display = "block";
+        jouerSon();
+      }, 15 * 60 * 1000);
+
+      timer60 = setTimeout(() => {
+        document.getElementById("alerte60").style.display = "block";
+        window.location.href = "tel:112";
+      }, 60 * 60 * 1000);
+
+      chronoInterval = setInterval(updateChrono, 1000);
+    }
+
+    function arreterSession() {
+      clearTimeout(timer15);
+      clearTimeout(timer60);
+      clearInterval(chronoInterval);
+      const fin = Date.now();
+      const dureeMin = Math.round((fin - debut) / 60000);
+      const date = new Date(debut);
+      const item = {
+        jour: date.toLocaleDateString(),
+        heure: date.toLocaleTimeString(),
+        duree: dureeMin
+      };
+      enregistrerCrise(item);
+    }
+
+    function enregistrerCrise(data) {
+      const hist = JSON.parse(localStorage.getItem("hist") || "[]");
+      hist.push(data);
+      localStorage.setItem("hist", JSON.stringify(hist));
+      afficherHistorique();
+    }
+
+    function ajouterCriseManuelle() {
+      const date = new Date();
+      const item = {
+        jour: date.toLocaleDateString(),
+        heure: date.toLocaleTimeString(),
+        duree: 0
+      };
+      enregistrerCrise(item);
+    }
+
+    function afficherHistorique() {
+      const conteneur = document.getElementById("listeCrises");
+      const hist = JSON.parse(localStorage.getItem("hist") || "[]");
+      conteneur.innerHTML = "";
+      hist.forEach((crise, i) => {
+        const div = document.createElement("div");
+        div.className = "crise-item";
+        div.innerHTML = `📅 ${crise.jour} à ${crise.heure} — ⏱️ ${crise.duree} min 
+          <button onclick="supprimerCrise(${i})">Supprimer</button>`;
+        conteneur.appendChild(div);
+      });
+    }
+
+    function supprimerCrise(i) {
+      const hist = JSON.parse(localStorage.getItem("hist") || "[]");
+      hist.splice(i, 1);
+      localStorage.setItem("hist", JSON.stringify(hist));
+      afficherHistorique();
+    }
+
+    // Afficher l’historique au chargement
+    afficherHistorique();
   </script>
 </body>
 </html>
