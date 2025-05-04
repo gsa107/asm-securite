@@ -5,14 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Crise d’Asthme</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    #chrono, #tempsRestant { font-weight: bold; font-size: 1.2rem; }
-    .alerte15, .alerte60 {
-      background: red; color: white; padding: 1rem; margin-top: 1rem;
-      display: none; border-radius: 10px;
+    body {
+      font-family: sans-serif;
+      background-color: #f0f8ff;
+      color: #333;
+      padding: 1rem;
+      margin: 0;
     }
-    #listeCrises .crise-item {
-      margin: 0.5rem 0; border: 1px solid #ccc; padding: 0.5rem;
+    h1 {
+      color: #0066cc;
+    }
+    button {
+      margin: 0.5rem;
+      padding: 0.6rem 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-urgence {
+      background: red;
+      color: white;
+      font-weight: bold;
+    }
+    .btn-secondaire {
+      background: #eee;
+    }
+    .section {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .alerte15, .alerte60 {
+      background: red;
+      color: white;
+      padding: 1rem;
+      margin-top: 1rem;
+      border-radius: 10px;
+      display: none;
+    }
+    #listeCrises {
+      margin-top: 1rem;
+    }
+    .crise-item {
+      border: 1px solid #ccc;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border-radius: 5px;
+    }
+    #historiqueWrapper {
+      display: none;
+    }
+    video {
+      max-width: 100%;
+      border-radius: 10px;
+      margin-top: 1rem;
     }
   </style>
 </head>
@@ -20,27 +68,42 @@
 
   <h1>Gestion de Crise d’Asthme</h1>
 
+  <button class="btn-urgence" onclick="window.location.href='tel:112'">Appeler les secours</button>
   <button onclick="demarrerSession()">Démarrer une session</button>
   <button onclick="arreterSession()">Stop</button>
-  <button onclick="ajouterCriseManuelle()">Enregistrer manuellement</button>
+  <button onclick="ajouterCriseManuelle()">Ajouter manuellement</button>
 
-  <div id="chrono">Temps écoulé : 0 min</div>
-  <div id="tempsRestant">Temps avant alarme : 15:00</div>
-
-  <div class="alerte15" id="alerte15">⏰ 15 min écoulées !</div>
-  <div class="alerte60" id="alerte60">
-    ⚠️ Crise prolongée !<br/>
-    Appeler les secours immédiatement : <strong>112</strong><br/>
-    Prendre <strong>2 comprimés de Prednisolone</strong>.
+  <div class="section">
+    <div id="chrono">Temps écoulé : 0 min</div>
+    <div id="tempsRestant">Temps avant alarme : 15:00</div>
+    <div class="alerte15" id="alerte15">⏰ 15 min écoulées !</div>
+    <div class="alerte60" id="alerte60">
+      ⚠️ Crise prolongée !<br/>
+      Appeler les secours (112)<br/>
+      Prendre <strong>2 comprimés de Prednisolone</strong>.
+    </div>
   </div>
 
-  <h2>Historique des crises</h2>
-  <div id="listeCrises"></div>
+  <div class="section">
+    <button class="btn-secondaire" onclick="toggleHistorique()">Afficher/Masquer l’historique</button>
+    <div id="historiqueWrapper">
+      <h2>Historique des crises</h2>
+      <div id="listeCrises"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Exercice de respiration</h2>
+    <video controls autoplay muted loop>
+      <source src="ta_video.mp4" type="video/mp4">
+      Vidéo non supportée.
+    </video>
+  </div>
 
   <audio id="sonAlarme" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
 
   <script>
-    let timer15, timer60, chronoInterval, debut, historique = [];
+    let timer15, timer60, chronoInterval, debut;
 
     function sortirDuSilencieux() {
       const ctx = new AudioContext();
@@ -136,7 +199,11 @@
       afficherHistorique();
     }
 
-    // Afficher l’historique au chargement
+    function toggleHistorique() {
+      const w = document.getElementById("historiqueWrapper");
+      w.style.display = w.style.display === "none" ? "block" : "none";
+    }
+
     afficherHistorique();
   </script>
 </body>
